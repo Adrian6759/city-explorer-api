@@ -18,12 +18,19 @@ app.get('/weather', (request, response, next) => {
     let { searchQuery } = request.query;
     const cityWeather = db.find(city => city.city_name.toLowerCase() === searchQuery.toLowerCase())
     let arrDays = cityWeather.data;
+    try{
     let forecastArr = arrDays.map(day => new Forecast(day))
     response.send(forecastArr);
+}catch(err) {
+    errorHandler(err,response);
+}
 
 
 });
-
+function errorHandler(err,response) {
+    console.log(err);
+    response.status(500).send("Ooops you hit a wall")
+}
 function Forecast(day) {
     this.date = day.valid_date;
     this.description = day.weather.description;
