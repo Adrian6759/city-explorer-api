@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
 const db = require('./data/weather.json');
 const app = express();
 app.use(cors());
@@ -12,14 +13,6 @@ const weatherData = require('./data/weather.json');
 const PORT = process.env.PORT || 3001;
 
 const cache = require('./data/cache.js')
-// get city that was searched
-// check if city data is in the cache
-//  if it is in the cache 
-//      return object to front end as a response, 
-//  if else 
-// send request to API 
-// save response to cache cache[cityName]=(seattleData)
-// send response to front end
 
 app.get('/weather', async (request, response, next) => {
 
@@ -32,6 +25,7 @@ app.get('/weather', async (request, response, next) => {
     } else {
         console.log('Cache miss!!!')
         let url = `https://api.weatherbit.io/v2.0/forecast/daily?key=${WEATHER_API_KEY}&lat=${lat}&lon=${lon}&days=3`;
+        console.log(url);
         cache[key] = {};
         let weatherResponse = await axios({
             method: 'GET',
@@ -41,7 +35,7 @@ app.get('/weather', async (request, response, next) => {
         let weatherData = weatherResponse.data.data;
         try {
             let forecastArr = weatherData.map(day => new Forecast(day))
-            cache[key].data= forecastArr
+            cache[key].data = forecastArr
         } catch (err) {
             errorHandler(err, response);
         }
@@ -51,6 +45,26 @@ app.get('/weather', async (request, response, next) => {
 
 
 });
+app.get('/movies', async (request, response, next) => {
+
+    let { searchQuery } = request.query;
+    let url = `https://api.themoviedb.org/3/search/movies/?api_key=${MOVIE_API_KEY}&query=${searchQuery}&page=1`;
+    console.log(url);
+    let resultsArr = [];
+    let movieResponse = await axios({
+        method: 'GET',
+        url: url,
+    });
+    let movieData = movieResponse.data;
+    try {
+        movieData.results.map(movie => resultsArr.push(new Movie(movie)));
+
+        response.send(resultsArr.data);
+    } catch (err) {
+        errorHandler(err, response);
+    }
+});
+
 function errorHandler(err, response) {
     console.log(err);
     response.status(500).send("Ooops you hit a wall")
@@ -60,16 +74,21 @@ function Forecast(day) {
     this.date = day.valid_date;
     this.description = day.weather.description;
 }
+class Movie {
+    constructor(data) {
+        this.title = data.original_title;
+        this.overview = data.overview;
+        this.avg = data.vote_average;
+        this.total = data.vote_count;
+        this.popularity = data.popularity;
+        this.release = data.released_on;
+        console.log(this.title,this.overview,this.avg,this.total);
+    }
+
+}
 app.use;
-// catch all requests that don't match a METHOD or URL above.
 app.use('*', (request, response, next) => {
     response.status(404).send('Invalid Request, route not found');
 });
-
-// class Forecast {
-//     constructor(weather) {
-
-//     }
-// }
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
