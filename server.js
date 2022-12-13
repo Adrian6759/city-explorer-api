@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const superagent = require('superagent');
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
 const db = require('./data/weather.json');
@@ -48,18 +49,15 @@ app.get('/weather', async (request, response, next) => {
 app.get('/movies', async (request, response, next) => {
 
     let { searchQuery } = request.query;
-    let url = `https://api.themoviedb.org/3/search/movies/?api_key=${MOVIE_API_KEY}&query=${searchQuery}&page=1`;
+    let url = `https://api.themoviedb.org/3/search/movie/?api_key=${MOVIE_API_KEY}&query=${searchQuery}&page=1`;
     console.log(url);
     let resultsArr = [];
-    let movieResponse = await axios({
-        method: 'GET',
-        url: url,
-    });
-    let movieData = movieResponse.data;
     try {
+        let movieResponse = await superagent.get(url);
+        let movieData = movieResponse._body;
         movieData.results.map(movie => resultsArr.push(new Movie(movie)));
-
-        response.send(resultsArr.data);
+        console.log('this is the data', resultsArr);
+        response.send(resultsArr);
     } catch (err) {
         errorHandler(err, response);
     }
